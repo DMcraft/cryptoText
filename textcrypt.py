@@ -1,11 +1,11 @@
 from aes import aes128
-from base64 import b64encode, b64decode
+from base64 import a85encode, a85decode
 import random
 from loguru import logger
 
 ALPHABET64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 ALPHABETEN = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
-ALPHABETRU = 'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя'
+ALPHABETRU = 'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя«»'
 
 _PASSWORD = 'JHF6d2@0LK#skK$l'
 
@@ -26,6 +26,34 @@ def generate_password() -> str:
         buf.append(random.choice(ALPHABET64))
     logger.info(f"PASSWORD = '{''.join(buf)}'")
     return ''.join(buf)
+
+
+def normolize_alphabet_ru(text: str, tobyte: bool = True) -> str:
+    """Cyrillic characters conversion to ASCII range
+    from 128 to 256 as well as reverse conversion
+    :param text: input text
+    :param tobyte: flag transformation directions
+    :return: conversion text
+    """
+
+    text_buf = []
+
+    if tobyte:
+        for ch in text:
+            if ord(ch) < 128:
+                text_buf.append(ch)
+            elif ch in ALPHABETRU:
+                text_buf.append(chr(ALPHABETRU.find(ch) + 128))
+            else:
+                text_buf.append(ch)
+    else:
+        for ch in text:
+            if 127 < ord(ch) < 128 + len(ALPHABETRU):
+                text_buf.append(ALPHABETRU[ord(ch) - 128])
+            else:
+                text_buf.append(ch)
+
+    return ''.join(text_buf)
 
 
 def encrypt(data: bytes) -> bytearray:
@@ -61,10 +89,10 @@ def decrypt(data: bytes) -> bytearray:
 
 
 def b64encrypt(data: str, split=79) -> str:
-    data_b = data.encode('utf-8')
-    # data_b += (' ' * (16 - len(data_b) % 16)).encode('utf-8')
+    data_b = normolize_alphabet_ru(data).encode('utf-8')
+    logger.debug(f'Length text {len(data)}, after encrypt85 {len(data_b)}')
     code = encrypt(data_b)
-    b64 = b64encode(code).decode('utf-8')
+    b64 = a85encode(code).decode('utf-8')
     s_split = ['\n>>>', ]
     for start in range(0, len(b64), split):
         s_split.append(b64[start:start + split])
@@ -73,11 +101,21 @@ def b64encrypt(data: str, split=79) -> str:
 
 
 def b64decrypt(code: str) -> str:
-    crypt_code = b64decode(code.strip('<>\n').encode('utf-8'))
+    crypt_code = a85decode(code.strip('<>\n').encode('utf-8'))
+    logger.debug(f'Length text before decrypt85 {len(code)}, after  {len(crypt_code)}')
     if len(crypt_code) % 16 != 0:
         print('Attention: code modified. len=', len(crypt_code.decode('utf-8')))
     data = decrypt(crypt_code)
-    return data.decode('utf-8')
+    return normolize_alphabet_ru(data.decode('utf-8'), tobyte=False)
+
+
+def gettextcrypt(text: str) -> str:
+    if (text.find('>>>') == -1 or text.find('<<<') == -1 or
+            text.find('<<<') - text.find('>>>') < 3):
+        return b64encrypt(text)
+    else:
+        return b64decrypt(text[text.find('>>>') + 3:text.find('<<<')])
+    pass
 
 
 if __name__ == "__main__":
@@ -101,3 +139,6 @@ if __name__ == "__main__":
         result = b64encrypt('\n'.join(contents))
 
     print(result)
+    l_in = len("".join(contents))
+    l_out = len(result)
+    print(f'Input string length {l_in}, return length {l_out}, ratio {l_out / l_in}.')
