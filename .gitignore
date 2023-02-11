@@ -1,0 +1,9 @@
+.git
+.idea
+**/__pycache__
+*.log
+/build/
+/dist/
+/maingui.spec
+/.venv/
+/main.ini

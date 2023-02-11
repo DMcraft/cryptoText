@@ -1,13 +1,16 @@
 from aes import aes128
-from base64 import a85encode, a85decode
-import random
+from base64 import b64encode, b64decode
+import secrets
 from loguru import logger
 
 ALPHABET64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-ALPHABETEN = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+ALPHABETENUP = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+ALPHABETENLO = 'abcdefghijklmnopqrstuvwxyz'
+ALPHABETSPEC = '!@#$%^&*~/*-+'
+ALPHABETDIGIT = '0123456789'
 ALPHABETRU = 'АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя«»'
 
-_PASSWORD = 'JHF6d2@0LK#skK$l'
+_PASSWORD = '/Zy^Qcy2X7bM$$K6'
 
 
 def set_password(password: str) -> bool:
@@ -21,11 +24,18 @@ def set_password(password: str) -> bool:
 
 
 def generate_password() -> str:
-    buf = []
-    for _ in range(16):
-        buf.append(random.choice(ALPHABET64))
-    logger.info(f"PASSWORD = '{''.join(buf)}'")
-    return ''.join(buf)
+
+    alphabet = ALPHABETENUP + ALPHABETENLO + ALPHABETDIGIT + ALPHABETSPEC
+
+    while True:
+        password = ''.join(secrets.choice(alphabet) for _ in range(16))
+        if (sum(c in ALPHABETDIGIT for c in password) > 2
+                and sum(c in ALPHABETSPEC for c in password) > 2
+                and sum(c in ALPHABETENLO for c in password) > 3):
+            break
+
+    logger.info(f"PASSWORD = '{password}'")
+    return password
 
 
 def normolize_alphabet_ru(text: str, tobyte: bool = True) -> str:
@@ -67,7 +77,7 @@ def encrypt(data: bytes) -> bytearray:
             crypt_data.extend(aes128.encrypt(block, _PASSWORD))
             step = 0
     else:
-        if 0 < step < 15:
+        if 0 < step < 16:
             for i in range(step, 15):
                 block[i] = 0
             block[15] = 1
@@ -90,9 +100,9 @@ def decrypt(data: bytes) -> bytearray:
 
 def b64encrypt(data: str, split=79) -> str:
     data_b = normolize_alphabet_ru(data).encode('utf-8')
-    logger.debug(f'Length text {len(data)}, after encrypt85 {len(data_b)}')
+    # logger.debug(f'Length text {len(data)}, after encrypt85 {len(data_b)}')
     code = encrypt(data_b)
-    b64 = a85encode(code).decode('utf-8')
+    b64 = b64encode(code).decode('utf-8')
     s_split = ['\n>>>', ]
     for start in range(0, len(b64), split):
         s_split.append(b64[start:start + split])
@@ -101,10 +111,10 @@ def b64encrypt(data: str, split=79) -> str:
 
 
 def b64decrypt(code: str) -> str:
-    crypt_code = a85decode(code.strip('<>\n').encode('utf-8'))
-    logger.debug(f'Length text before decrypt85 {len(code)}, after  {len(crypt_code)}')
+    crypt_code = b64decode(code.strip('\n').encode('utf-8'))
+    # logger.debug(f'Length text before decrypt85 {len(code)}, after  {len(crypt_code)}')
     if len(crypt_code) % 16 != 0:
-        print('Attention: code modified. len=', len(crypt_code.decode('utf-8')))
+        print('Attention: code modified. len=', len(crypt_code))
     data = decrypt(crypt_code)
     return normolize_alphabet_ru(data.decode('utf-8'), tobyte=False)
 

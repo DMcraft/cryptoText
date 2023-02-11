@@ -1,3 +1,5 @@
+import random
+import textcrypt
 from unittest import TestCase
 
 
@@ -50,3 +52,13 @@ class Test(TestCase):
         """
         self.assertEqual(normolize_alphabet_ru(normolize_alphabet_ru(text), tobyte=False), text)
 
+    def test_gettextcrypt(self):
+        from textcrypt import gettextcrypt
+        sym = textcrypt.ALPHABETRU + textcrypt.ALPHABET64 + textcrypt.ALPHABETSPEC + ' '
+
+        print('Long test 0 to 10000: progress ')
+        for n in range(10000):
+            if n % 500 == 0:
+                print(f'{n // 500} out of 20 steps')
+            t = ''.join(random.choice(sym) for _ in range(random.randint(3, 350)))
+            self.assertEqual(gettextcrypt(gettextcrypt(t)), t)

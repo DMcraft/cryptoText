@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "cryptotext"
+version = "1.1.0"
+description = ""
+authors = ["DMcraft <dmcraft@ctvi.ru>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+loguru = "^0.6.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
